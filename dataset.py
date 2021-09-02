@@ -5,26 +5,23 @@ import torchaudio
 from pathlib import Path
 import pandas as pd
 
-from PIL import Image
-import librosa
-import numpy as np
-import random
-import pickle
-import PIL
-import os
-import json
-import torch
-import torchaudio
-import torchvision
-import h5py
-import datetime
-
 class DCASE(Dataset):
     def __init__(self, root_dir):
         self.root_dir = Path(root_dir)
-        self.labels = pd.read_csv((root_dir / 'labels.csv'))
+        self.label_names = pd.read_csv((root_dir / 'labels.csv'))
+        self.labels = self.label_names.astype('category').cat.codes
 
-        self.spec_transform =
+        self.sample_rate = 24000 #Confirm this
+
+        win_size = 40 * self.ample_rate / 1e3
+        self.spec_fn = torchaudio.transforms.MelSpectrogram(
+            sample_rate=self.sample_rate,
+            nfft=win_size,
+            n_mels=60,
+            hop_length=win_size//2,
+            window_fn=torch.hamming_window,
+            power=2,
+        )
 
         self.data_len = len(self.labels)
 
@@ -35,17 +32,13 @@ class DCASE(Dataset):
 
         spec = self.__make_spec__(data_array, sample_rate)
 
+        return spec, label
 
-    def __make_spec__(self, data_array, sample_rate):
-        win_size = 40 * sample_rate / 1e3
-        spec = torchaudio.transforms.MelSpectrogram(
-            sample_rate=sample_rate,
-            nfft=win_size,
-            hop_length=win_size//2,
-            window_fn=torch.hamming_window,
-            power=2,
 
-        )
+    def __make_spec__(self, data_array):
+        spec = self.spec_fn(data_array).log2()
+
+        return spec
 
 
     def __len__(self):
