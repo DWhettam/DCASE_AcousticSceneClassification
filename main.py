@@ -17,6 +17,8 @@ parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
 parser.add_argument('epochs', type=int, default=10,
                     help='number of epochs')
+parser.add_argument('batch_size', type=int, default=64,
+                    help='Size of batches')
 parser.add_argument('-p', '--print_freq', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('-e', '--eval_freq', default=1, type=int,
@@ -25,10 +27,11 @@ args = parser.parse_args()
 
 torchaudio.set_audio_backend("sox_io")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+num_classes = 15
 
 def main():
     dataset = DCASE_Dataset(args.data)
-    dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     _, _, freq_dim, time_dim = next(iter(dataloader)).size()
 
     model = DCASEModel(freq_dim, time_dim)
@@ -69,6 +72,9 @@ def run_phase(loader, model, criterion, optimizer, epoch, args, phase='train'):
         target = target.to(device)
 
         output = model(specs)
+        num_clips = loader.get_num_clips()
+        output = output.reshape(args.batch_size, num_clips, num_classes)
+        output = torch.mean(output, 1)
         loss = criterion(output, target)
 
         acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))

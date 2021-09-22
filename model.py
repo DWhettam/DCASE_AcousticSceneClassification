@@ -11,11 +11,13 @@ class DCASEModel(nn.Module):
         freq_dim_qtr = freq_dim/ 4
         self.layer1 = nn.sequential(nn.Conv2d(1, 128, kernel_size=(5, 5), stride=1, padding=0),
                                     nn.ReLu(),
+                                    nn.BatchNorm2d(128),
                                     nn.MaxPool2d((5, 5)),
                                     )
 
         self.layer2 = nn.sequential(nn.Conv2d(128, 256, kernel_size=(5, 5), stride=1, padding=0),
                                     nn.ReLu(),
+                                    nn.BatchNorm2d(256),
                                     nn.MaxPool2d((freq_dim_qtr, time_dim)),
                                     )
 
