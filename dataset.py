@@ -10,32 +10,32 @@ import pandas as pd
 class DCASE(Dataset):
     def __init__(self, root_dir, clip_duration, total_duration):
         self._root_dir = Path(root_dir)
-        self._label_names = pd.read_csv((root_dir / 'labels.csv'))
-        self._labels = self.label_names.astype('category').cat.codes
+        self._labels = pd.read_csv((self._root_dir / 'labels.csv'), names=['file', 'label'])
+        self._labels['label'] = self._labels.label.astype('category').cat.codes.astype('int')
         self._clip_duration = clip_duration
         self._total_duration = total_duration
 
         self._sample_rate = 44100 #Confirm this
 
-        win_size = 40 * self._sample_rate / 1e3
+        win_size = int(round(40 * self._sample_rate / 1e3))
         self._spec_fn = torchaudio.transforms.MelSpectrogram(
-            sample_rate=self.sample_rate,
-            nfft=win_size,
+            sample_rate=self._sample_rate,
+            n_fft=win_size,
             n_mels=60,
             hop_length=win_size//2,
             window_fn=torch.hamming_window,
             power=2,
         )
 
-        self._data_len = len(self.labels)
+        self._data_len = len(self._labels)
 
     def __getitem__(self, index):
-        filename, label = self._labels[index]
-        filepath = self._root_dir / filename
+        filename, label = self._labels.iloc[index]
+        filepath = self._root_dir / 'audio'/ filename
         data_array, sample_rate = torchaudio.load(filepath)
+
         spec = self.__make_spec__(data_array)
         spec = self.__trim__(spec)
-
         return spec, label
 
 
@@ -45,14 +45,14 @@ class DCASE(Dataset):
 
     def __trim__(self, spec):
         time_steps = spec.size(-1)
-        self._num_clips = self._total_duration / self._clip_duration
-        time_interval = time_steps // self._num_clips
-
+        self._num_clips = self._total_duration // self._clip_duration
+        time_interval = int(time_steps // self._num_clips)
         all_clips = []
         for clip_idx in range(self._num_clips):
             start = clip_idx * time_interval
             end = start + time_interval
-            spec_clip = spec[start:end]
+            spec_clip = spec[:, :, start:end]
+            spec_clip = torch.squeeze(spec_clip)
             all_clips.append(spec_clip)
 
         specs = torch.stack(all_clips)
@@ -63,9 +63,5 @@ class DCASE(Dataset):
 
 
 
-
-
-
-
     def __len__(self):
-        return self.data_len
+        return self._data_len

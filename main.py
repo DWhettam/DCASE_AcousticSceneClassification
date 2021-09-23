@@ -3,21 +3,22 @@ import time
 
 import utils
 
+import numpy as np
 import torch
 import torchaudio
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from DCASE_Dataset import DCASE_Dataset
+from dataset import DCASE
 from model import DCASEModel
 
 
 parser = argparse.ArgumentParser(description='DCASE CNN')
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
-parser.add_argument('epochs', type=int, default=10,
+parser.add_argument('--epochs', type=int, default=10,
                     help='number of epochs')
-parser.add_argument('batch_size', type=int, default=64,
+parser.add_argument('--batch_size', type=int, default=64,
                     help='Size of batches')
 parser.add_argument('-p', '--print_freq', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
@@ -30,10 +31,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_classes = 15
 
 def main():
-    dataset = DCASE_Dataset(args.data)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
-    _, _, freq_dim, time_dim = next(iter(dataloader)).size()
+    dataset = DCASE(args.data, 4, 30)
+    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
+    _, _, freq_dim, time_dim = next(iter(dataloader))[0].size()
     model = DCASEModel(freq_dim, time_dim)
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -44,14 +45,14 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    for epoch in args.epochs:
-        run_phase(dataloader, criterion, optimizer, epoch, args, phase='train')
+    for epoch in range(args.epochs):
+        run_phase(dataloader, dataset, model, criterion, optimizer, epoch, args, phase='train')
 
-        if epoch % args.eval_freq == 0:
-            run_phase(dataloader, criterion, optimizer, epoch, args, phase='val')
+        #if epoch % args.eval_freq == 0:
+            #run_phase(dataloader, dataset, model, criterion, optimizer, epoch, args, phase='val')
 
 
-def run_phase(loader, model, criterion, optimizer, epoch, args, phase='train'):
+def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='train'):
     batch_time = utils.AverageMeter('Time', ':6.3f')
     data_time = utils.AverageMeter('Data', ':6.3f')
     losses = utils.AverageMeter('Loss', ':.4e')
@@ -70,10 +71,11 @@ def run_phase(loader, model, criterion, optimizer, epoch, args, phase='train'):
         data_time.update(time.time() - end)
         specs = specs.to(device)
         target = target.to(device)
+        specs = specs.contiguous().view(-1, 1, np.shape(specs)[2], np.shape(specs)[3])
 
         output = model(specs)
-        num_clips = loader.get_num_clips()
-        output = output.reshape(args.batch_size, num_clips, num_classes)
+        num_clips = dataset.get_num_clips()
+        output = output.reshape(-1, num_clips, num_classes)
         output = torch.mean(output, 1)
         loss = criterion(output, target)
 
