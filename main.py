@@ -1,14 +1,14 @@
 import argparse
 import time
 
-import utils
-
+import wandb
 import numpy as np
 import torch
 import torchaudio
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
+import utils
 from dataset import DCASE
 from model import DCASEModel
 
@@ -26,15 +26,22 @@ parser.add_argument('-e', '--eval_freq', default=1, type=int,
                     metavar='N', help='print frequency (default: 1)')
 args = parser.parse_args()
 
+wandb.init(project="DCASE-CNN")
+
 torchaudio.set_audio_backend("sox_io")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_classes = 15
 
 def main():
     dataset = DCASE(args.data, 4, 30)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    length = len(dataset)
+    train_len = int(round(length * 0.8))
+    val_len = length - train_len
+    train_data, val_data = torch.utils.data.random_split(dataset, [train_len, val_len])
+    train_dataloader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
-    _, _, freq_dim, time_dim = next(iter(dataloader))[0].size()
+    _, _, freq_dim, time_dim = next(iter(train_dataloader))[0].size()
     model = DCASEModel(freq_dim, time_dim)
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -46,10 +53,10 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     for epoch in range(args.epochs):
-        run_phase(dataloader, dataset, model, criterion, optimizer, epoch, args, phase='train')
+        run_phase(train_dataloader, dataset, model, criterion, optimizer, epoch, args, phase='train')
 
-        #if epoch % args.eval_freq == 0:
-            #run_phase(dataloader, dataset, model, criterion, optimizer, epoch, args, phase='val')
+        if epoch % args.eval_freq == 0:
+            run_phase(val_dataloader, dataset, model, criterion, optimizer, epoch, args, phase='val')
 
 
 def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='train'):
@@ -96,6 +103,9 @@ def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='
 
         if i % args.print_freq == 0:
             progress.display(i)
+
+        for meter in progress.meters:
+            wandb.log({str(phase + '-' + meter.name): meter.val})
 
 
 if __name__ == '__main__':
