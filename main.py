@@ -16,7 +16,7 @@ from model import DCASEModel
 parser = argparse.ArgumentParser(description='DCASE CNN')
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
-parser.add_argument('--epochs', type=int, default=10,
+parser.add_argument('--epochs', type=int, default=100,
                     help='number of epochs')
 parser.add_argument('--batch_size', type=int, default=64,
                     help='Size of batches')
