@@ -1,5 +1,6 @@
 import argparse
 import time
+from pathlib import Path
 
 import wandb
 import numpy as np
@@ -14,7 +15,7 @@ from model import DCASEModel
 
 
 parser = argparse.ArgumentParser(description='DCASE CNN')
-parser.add_argument('data', metavar='DIR',
+parser.add_argument('data', type=str,
                     help='path to dataset')
 parser.add_argument('--epochs', type=int, default=100,
                     help='number of epochs')
@@ -33,7 +34,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_classes = 15
 
 def main():
-    dataset = DCASE(args.data, 4, 30)
+    dataset = DCASE(args.data, 3)
     length = len(dataset)
     train_len = int(round(length * 0.8))
     val_len = length - train_len
@@ -41,8 +42,7 @@ def main():
     train_dataloader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
     val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
-    _, _, freq_dim, time_dim = next(iter(train_dataloader))[0].size()
-    model = DCASEModel(freq_dim, time_dim)
+    model = DCASEModel()
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         model = nn.DataParallel(model)
@@ -60,6 +60,18 @@ def main():
 
 
 def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='train'):
+    """
+    Runs a full epoch of train or val phase
+    :param loader: Pytorch DataLoader. Can be train or val
+    :param dataset: DCASE Dataset. Used for getting the number of sub-clips within each audio clip
+    :param model: Model object
+    :param criterion: Criterion for calculating loss
+    :param optimizer: Optimiser used for gradient updates
+    :param epoch: number of current epoch
+    :param args: arguments input by user
+    :param phase: train/val phase
+    :return: N/A
+    """
     batch_time = utils.AverageMeter('Time', ':6.3f')
     data_time = utils.AverageMeter('Data', ':6.3f')
     losses = utils.AverageMeter('Loss', ':.4e')

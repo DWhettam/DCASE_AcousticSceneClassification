@@ -5,10 +5,9 @@ from typing import Any
 
 class DCASEModel(nn.Module):
 
-    def __init__(self, freq_dim, time_dim) -> None:
+    def __init__(self) -> None:
         super(DCASEModel, self).__init__()
 
-        freq_dim_qtr = int(freq_dim // 4)
         self.layer1 = nn.Sequential(nn.Conv2d(1, 128, kernel_size=(5, 5), stride=1, padding=0),
                                     nn.ReLU(),
                                     nn.BatchNorm2d(128),
