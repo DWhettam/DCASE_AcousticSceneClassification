@@ -8,6 +8,8 @@ import torch
 import torchaudio
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 import utils
 from dataset import DCASE
@@ -82,6 +84,10 @@ def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='
         [batch_time, data_time, losses, top1, top5],
         prefix="Epoch: [{}] | {} | ".format(epoch, phase))
 
+    # Initialize the prediction and label lists(tensors)
+    predlist = torch.zeros(0, dtype=torch.long, device='cpu')
+    lbllist = torch.zeros(0, dtype=torch.long, device='cpu')
+
     # switch to train mode
     model.train(phase == 'train')
 
@@ -109,15 +115,26 @@ def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='
             loss.backward()
             optimizer.step()
 
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
+        # Append batch prediction results
+        predlist = torch.cat([predlist, torch.argmax(output, dim=1).cpu()])
+        lbllist = torch.cat([lbllist, target.cpu()])
 
         if i % args.print_freq == 0:
             progress.display(i)
 
         for meter in progress.meters:
             wandb.log({str(phase + '-' + meter.name): meter.val})
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+
+    conf_mat = confusion_matrix(lbllist.detach().numpy(), predlist.detach().numpy())
+    disp = ConfusionMatrixDisplay(confusion_matrix=conf_mat)
+    disp.plot()
+    plt.savefig(f"{phase}_cm.png")
+
+
 
 
 if __name__ == '__main__':
