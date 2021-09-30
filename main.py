@@ -133,6 +133,7 @@ def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='
     disp = ConfusionMatrixDisplay(confusion_matrix=conf_mat)
     disp.plot()
     plt.savefig(f"{phase}_cm.png")
+    plt.close()
 
 
 
