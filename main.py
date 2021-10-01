@@ -19,6 +19,14 @@ from model import DCASEModel
 parser = argparse.ArgumentParser(description='DCASE CNN')
 parser.add_argument('data', type=str,
                     help='path to dataset')
+parser.add_argument('--full_train', action='store_true',
+                    help='Indicates if training on full data instead of splitting for train/val')
+parser.add_argument('--mode', type=str, choices=['train', 'eval'], default='train',
+                    help='Indicates if training or evaluating model')
+parser.add_argument('--model_checkpoint', type=str, default='model.pt',
+                    help='path to model')
+parser.add_argument('--clip_length', type=int, default=3,
+                    help='Length of audio clip in seconds')
 parser.add_argument('--epochs', type=int, default=100,
                     help='number of epochs')
 parser.add_argument('--batch_size', type=int, default=64,
@@ -36,15 +44,25 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_classes = 15
 
 def main():
-    dataset = DCASE(args.data, 3)
-    length = len(dataset)
-    train_len = int(round(length * 0.8))
-    val_len = length - train_len
-    train_data, val_data = torch.utils.data.random_split(dataset, [train_len, val_len])
-    train_dataloader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
-    val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    dataset = DCASE(args.data, args.clip_length)
+    if args.full_train and args.mode == 'train':
+        train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    elif args.mode == 'eval':
+        val_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    else: #split training set into train/val
+        length = len(dataset)
+        train_len = int(round(length * 0.8))
+        val_len = length - train_len
+        train_data, val_data = torch.utils.data.random_split(dataset, [train_len, val_len])
+        train_dataloader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
+        val_dataloader = DataLoader(val_data, batch_size=args.batch_size, shuffle=True, drop_last=True)
 
     model = DCASEModel()
+
+    if args.mode == 'eval':
+        ckpt = torch.load(args.model_checkpoint)
+        model.load_state_dict(ckpt['model_state_dict'])
+
     if torch.cuda.device_count() > 1:
         print("Let's use", torch.cuda.device_count(), "GPUs!")
         model = nn.DataParallel(model)
@@ -54,11 +72,18 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    for epoch in range(args.epochs):
-        run_phase(train_dataloader, dataset, model, criterion, optimizer, epoch, args, phase='train')
+    if args.mode == 'eval':
+        run_phase(val_dataloader, dataset, model, criterion, optimizer, ckpt['epoch'], args, phase='val')
+    else:
+        for epoch in range(args.epochs):
+            run_phase(train_dataloader, dataset, model, criterion, optimizer, epoch, args, phase='train')
 
-        if epoch % args.eval_freq == 0:
-            run_phase(val_dataloader, dataset, model, criterion, optimizer, epoch, args, phase='val')
+            if epoch % args.eval_freq == 0 and args.full_train is False:
+                run_phase(val_dataloader, dataset, model, criterion, optimizer, epoch, args, phase='val')
+
+            torch.save({'epoch': epoch,
+                        'model_state_dict':model.state_dict()},
+                       'model.pt')
 
 
 def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='train'):
