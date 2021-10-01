@@ -36,7 +36,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_classes = 15
 
 def main():
-    dataset = DCASE(args.data, 3)
+    dataset = DCASE(args.data, clip_duration=3)
     length = len(dataset)
     train_len = int(round(length * 0.8))
     val_len = length - train_len
