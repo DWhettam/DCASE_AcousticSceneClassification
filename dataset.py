@@ -1,5 +1,3 @@
-import random
-
 from torch.utils.data.dataset import Dataset
 import torch
 import torchaudio
@@ -36,6 +34,7 @@ class DCASE(Dataset):
         filepath = self._root_dir / 'audio'/ filename
         data_array, sample_rate = torchaudio.load(filepath)
 
+        #make sure using correct sampling rate
         assert sample_rate == self._sample_rate, "Sample rate doesn't match expected rate. " \
                                                  "Can not create spectrogram as intended, likely an issue with data."
         #creating spectrogram and splitting

@@ -9,7 +9,7 @@ import torchaudio
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
 
 import utils
 from dataset import DCASE
@@ -134,6 +134,9 @@ def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='
     disp.plot()
     plt.savefig(f"{phase}_cm.png")
     plt.close()
+
+    accuracy = accuracy_score(lbllist.detach().numpy(), predlist.detach().numpy())
+    print(f"{phase} accuracy of epoch {epoch}: {accuracy}")
 
 
 
