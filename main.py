@@ -21,8 +21,8 @@ parser.add_argument('data', type=str,
                     help='path to dataset')
 parser.add_argument('--full_train', action='store_true',
                     help='Indicates if training on full data instead of splitting for train/val')
-parser.add_argument('--mode', type=str, choices=['train', 'eval'], default='train',
-                    help='Indicates if training or evaluating model')
+parser.add_argument('--eval', action='store_true',
+                    help='Indicates if evaluating model')
 parser.add_argument('--model_checkpoint', type=str, default='model.pt',
                     help='path to model')
 parser.add_argument('--clip_length', type=int, default=3,
@@ -45,9 +45,9 @@ num_classes = 15
 
 def main():
     dataset = DCASE(args.data, args.clip_length)
-    if args.full_train and args.mode == 'train':
+    if args.full_train and not args.eval:
         train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
-    elif args.mode == 'eval':
+    elif args.eval:
         val_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     else: #split training set into train/val
         length = len(dataset)
@@ -59,7 +59,7 @@ def main():
 
     model = DCASEModel()
 
-    if args.mode == 'eval':
+    if args.eval:
         ckpt = torch.load(args.model_checkpoint)
         model.load_state_dict(ckpt['model_state_dict'])
 
@@ -72,7 +72,7 @@ def main():
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    if args.mode == 'eval':
+    if args.eval:
         run_phase(val_dataloader, dataset, model, criterion, optimizer, ckpt['epoch'], args, phase='val')
     else:
         for epoch in range(args.epochs):
