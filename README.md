@@ -1,6 +1,6 @@
 Impementation of [DCASE 2016 ACOUSTIC SCENE CLASSIFICATION USING CONVOLUTIONAL NEURAL NETWORKS](http://dcase.community/documents/workshop2016/proceedings/Valenti-DCASE2016workshop.pdf)
 
-#Useage
+# Useage
 
 Train with an 80/20 split on the devel set:
  `python main.py TUT-acoustic-scenes-2016/development/`
