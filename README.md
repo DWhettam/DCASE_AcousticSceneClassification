@@ -9,7 +9,7 @@ Train on full devel set:
 `python main.py TUT-acoustic-scenes-2016/development/ --full_train`
 
 Eval on eval set:
-`python main.py TUT-acoustic-scenes-2016/evaluation/ --eval --model_checkopint model.pt`
+`python main.py TUT-acoustic-scenes-2016/evaluation/ --eval --model_checkpoint model.pt`
 
 
 
