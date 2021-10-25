@@ -17,6 +17,5 @@ Eval on eval set:
 
 # Assumptions:
 * Ignored K-fold cross validation, instead did a standard 80/20 training/val split.
-* Ignored full/non-full training as in the paper. Just did standard training from scratch
 * For "destruction of the time axis" max pooling, I used adaptive max pool as it's easier to get dimensions correct. This means the "non-overlapping frequency bands" are not enforced (could be overlapping)
 * For sequence splitting, I combined the sequences into the batch dimension on input into the model. The model output was then seperated back out and averaged acrossed the splits.  
