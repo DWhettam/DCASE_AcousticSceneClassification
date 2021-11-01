@@ -37,7 +37,6 @@ def main():
         #seperate clips out from batch and average
         num_clips = dataset.get_num_clips()
         output = output.reshape(-1, num_clips, num_classes)
-        output = torch.mean(output, 1)
 
 if __name__ == '__main__':
     main()
