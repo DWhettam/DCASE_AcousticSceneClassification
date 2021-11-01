@@ -1,6 +1,6 @@
 Impementation of [DCASE 2016 ACOUSTIC SCENE CLASSIFICATION USING CONVOLUTIONAL NEURAL NETWORKS](http://dcase.community/documents/workshop2016/proceedings/Valenti-DCASE2016workshop.pdf)
 
-## [Download the data here](https://mega.nz/file/opZgTJxT#ofdea2sE557ecAvfbAPli_Di1XchYnZysfo_fx78cZk)
+## [Download the data here](https://uob-my.sharepoint.com/:f:/g/personal/qc19291_bristol_ac_uk/EvSxoCVp7JFFmrYoSn8xvhgBgqNCML4lrCIrw4E4nNsy1A?e=TRJuid)
 
 # Usage
 
