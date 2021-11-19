@@ -2,7 +2,7 @@ import argparse
 import time
 from pathlib import Path
 
-#import wandb
+import wandb
 import numpy as np
 import torch
 import torch.nn as nn
