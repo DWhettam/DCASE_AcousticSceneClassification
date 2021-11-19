@@ -1,7 +1,8 @@
 from torch.utils.data.dataset import Dataset
 import torch
-import torchaudio
+from torchvision import transforms
 
+import numpy as np
 from pathlib import Path
 import pandas as pd
 
@@ -12,33 +13,28 @@ class DCASE(Dataset):
         self._labels['label'] = self._labels.label.astype('category').cat.codes.astype('int') #create categorical labels
         self._clip_duration = clip_duration
         self._total_duration = 30 #DCASE audio length is 30s
-
-        self._sample_rate = 44100 #DCASE sampling rate is 44100
-
-        #creating melspec function
-        win_size = int(round(40 * self._sample_rate / 1e3)) #40ms window length
-        self._spec_fn = torchaudio.transforms.MelSpectrogram(
-            sample_rate=self._sample_rate,
-            n_fft=win_size,
-            n_mels=60,
-            hop_length=win_size//2, #50% overlapping windows
-            window_fn=torch.hamming_window,
-            power=2,
-        )
+        # self._sample_rate = 44100 #DCASE sampling rate is 44100
+        #
+        # #creating melspec function
+        # win_size = int(round(40 * self._sample_rate / 1e3)) #40ms window length
+        # self._spec_fn = torchaudio.transforms.MelSpectrogram(
+        #     sample_rate=self._sample_rate,
+        #     n_fft=win_size,
+        #     n_mels=60,
+        #     hop_length=win_size//2, #50% overlapping windows
+        #     window_fn=torch.hamming_window,
+        #     power=2,
+        # )
 
         self._data_len = len(self._labels)
 
     def __getitem__(self, index):
-        #reading raw audio
+        #reading spectrograms
         filename, label = self._labels.iloc[index]
         filepath = self._root_dir / 'audio'/ filename
-        data_array, sample_rate = torchaudio.load(filepath)
+        spec = torch.from_numpy(np.load(filepath))
 
-        #make sure using correct sampling rate
-        assert sample_rate == self._sample_rate, "Sample rate doesn't match expected rate. " \
-                                                 "Can not create spectrogram as intended, likely an issue with data."
-        #creating spectrogram and splitting
-        spec = self.__make_spec__(data_array)
+        #splitting spec
         spec = self.__trim__(spec)
         return spec, label
 
@@ -65,8 +61,8 @@ class DCASE(Dataset):
         for clip_idx in range(self._num_clips):
             start = clip_idx * time_interval
             end = start + time_interval
-            spec_clip = spec[:, :, start:end]
-            spec_clip = torch.squeeze(spec_clip)
+            spec_clip = spec[:, start:end]
+            #spec_clip = torch.squeeze(spec_clip)
             all_clips.append(spec_clip)
 
         specs = torch.stack(all_clips)

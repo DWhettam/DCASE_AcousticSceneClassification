@@ -118,6 +118,7 @@ def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='
 
     end = time.time()
     for i, (specs, target) in enumerate(loader):
+        print(specs.size())
         data_time.update(time.time() - end)
         specs = specs.to(device)
         target = target.to(device)
