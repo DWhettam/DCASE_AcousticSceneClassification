@@ -2,10 +2,9 @@ import argparse
 import time
 from pathlib import Path
 
-import wandb
+#import wandb
 import numpy as np
 import torch
-import torchaudio
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
@@ -39,7 +38,6 @@ args = parser.parse_args()
 
 wandb.init(project="DCASE-CNN")
 
-torchaudio.set_audio_backend("sox_io")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 num_classes = 15
 
@@ -118,7 +116,6 @@ def run_phase(loader, dataset, model, criterion, optimizer, epoch, args, phase='
 
     end = time.time()
     for i, (specs, target) in enumerate(loader):
-        print(specs.size())
         data_time.update(time.time() - end)
         specs = specs.to(device)
         target = target.to(device)
